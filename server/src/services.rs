@@ -89,7 +89,7 @@ async fn delete_group(data: web::Data<AppState>, path: web::Path<i32>, user_data
             }
  
             if initiator_is_admin {
-                groups_list.remove(i)
+                groups_list.remove(i);
             }
  
             break;
@@ -321,7 +321,8 @@ let groups_list = data.groups_list.lock().unwrap();
 
 #[post("/groups/{id}/secret-santa/start")]
 async fn start_secret_santa(data: web::Data<AppState>, path: web::Path<i32>, initiator: web::Json<UserData>) -> impl Responder {
-	 let mut groups_list = data.groups_list.lock().unwrap();
+
+    let mut groups_list = data.groups_list.lock().unwrap();
     let group_id = path.into_inner();
  
     let mut group_index: usize = 0;
