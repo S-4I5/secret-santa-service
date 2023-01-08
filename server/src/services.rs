@@ -67,24 +67,94 @@ async fn get_groups(data: web::Data<AppState>) -> impl Responder{
     HttpResponse::Ok().json(data.groups_list.lock().unwrap().to_vec())
 }
 
-#[get("/groups")]
-async fn get_groups(data: web::Data<AppState>) -> impl Responder{
-
-}
-
 #[put("/groups/{id}/delete")]
 async fn delete_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: web::Json<UserData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            let mut initiator_is_admin = false;
+ 
+            for j in 1..groups_list[i].admins_list.len() {
+ 
+                if groups_list[i].admins_list[j] == user_data.id {
+                    initiator_is_admin = true;
+                    break;
+                }
+ 
+            }
+ 
+            if initiator_is_admin {
+                groups_list.remove(i)
+            }
+ 
+            break;
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups")]
 async fn create_group(data: web::Data<AppState>, new_group_data: web::Json<NewGroupData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let mut max_id:usize = 0;
+    for i in 0..groups_list.len() {
+        if groups_list[i].id > max_id as i32{
+            max_id = groups_list[i].id as usize;
+        }
+    }
+ 
+    groups_list.push(Group{
+        id: (max_id + 1) as i32,
+        name: new_group_data.name.clone(),
+        admins_list: vec![new_group_data.creator_id.clone()],
+        members_list: vec![new_group_data.creator_id.clone()],
+        secret_santa_list: vec![],
+        is_open: true
+    });
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups/{id}/join")]
 async fn join_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: web::Json<UserData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            if !groups_list[i].is_open {break;}
+ 
+            let mut user_not_in_group = true;
+ 
+            for j in 0..groups_list[i].members_list.len() {
+ 
+                if groups_list[i].members_list[j] == user_data.id {
+                    user_not_in_group = false;
+                    break;
+                }
+ 
+            }
+ 
+            if user_not_in_group {
+                groups_list[i].members_list.push(user_data.id);
+            }
+ 
+            break;
+        }
+ 
+    }
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups/{id}/leave")]
