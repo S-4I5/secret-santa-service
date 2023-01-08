@@ -67,14 +67,36 @@ async fn get_groups(data: web::Data<AppState>) -> impl Responder{
     HttpResponse::Ok().json(data.groups_list.lock().unwrap().to_vec())
 }
 
-#[get("/groups")]
-async fn get_groups(data: web::Data<AppState>) -> impl Responder{
-
-}
-
 #[put("/groups/{id}/delete")]
 async fn delete_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: web::Json<UserData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            let mut initiator_is_admin = false;
+ 
+            for j in 1..groups_list[i].admins_list.len() {
+ 
+                if groups_list[i].admins_list[j] == user_data.id {
+                    initiator_is_admin = true;
+                    break;
+                }
+ 
+            }
+ 
+            if initiator_is_admin {
+                groups_list.remove(i)
+            }
+ 
+            break;
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups")]
