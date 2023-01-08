@@ -401,7 +401,21 @@ async fn get_secret_santas_list(data: web::Data<AppState>, path: web::Path<i32>)
 
 #[post("/groups/{id}/secret-santa")]
 async fn get_secret_santa(data: web::Data<AppState>, user_data: web::Json<UserData>, path: web::Path<i32>, ) -> impl Responder {
-
+let groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut group_index: usize = 0;
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id {
+            group_index = i;
+            break;
+        }
+ 
+    }
+ 
+    HttpResponse::Ok().json(groups_list[group_index].secret_santa_list.to_vec())
 }
 
 
