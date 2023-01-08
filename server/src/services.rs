@@ -7,22 +7,64 @@ use super::models::{NewUserData, UpdateData};
 
 #[get("/users")]
 async fn get_users(data: web::Data<AppState>) -> impl Responder{
-	
+    HttpResponse::Ok().json(data.users_list.lock().unwrap().to_vec())
 }
-
+ 
 #[post("/users")]
 async fn add_user(data: web::Data<AppState>, new_user: web::Json<NewUserData>) -> impl Responder{
-    
+    let mut users_list = data.users_list.lock().unwrap();
+    let mut max_id = 0;
+    for i in 0..users_list.len() {
+        if users_list[i].id > max_id{
+            max_id = users_list[i].id;
+        }
+    }
+ 
+    users_list.push(User{
+        id: max_id + 1,
+        name: new_user.name.clone()
+    });
+ 
+    HttpResponse::Ok().json(users_list.to_vec())
 }
-
+ 
 #[put("/users/{id}")]
 async fn update_user(data: web::Data<AppState>,path: web::Path<i32> , new_data: web::Json<UpdateData>) -> impl Responder{
-   
+ 
+    let id = path.into_inner();
+    let mut users_list = data.users_list.lock().unwrap();
+ 
+    for i in 0..users_list.len() {
+        if users_list[i].id == id {
+            users_list[i].name = new_data.title.clone();
+            break;
+        }
+    }
+ 
+    HttpResponse::Ok().json(users_list.to_vec())
 }
-
+ 
 #[delete("/users/{id}")]
 async fn delete_user(data: web::Data<AppState>,path: web::Path<i32>) -> impl Responder{
-
+ 
+    let id = path.into_inner();
+    let mut users_list = data.users_list.lock().unwrap();
+ 
+ 
+    for i in 0..users_list.len() {
+        if users_list[i].id == id {
+            users_list.remove(i);
+            break;
+        }
+    }
+ 
+    HttpResponse::Ok().json(users_list.to_vec())
+}
+ 
+#[get("/groups")]
+async fn get_groups(data: web::Data<AppState>) -> impl Responder{
+ 
+    HttpResponse::Ok().json(data.groups_list.lock().unwrap().to_vec())
 }
 
 #[get("/groups")]
