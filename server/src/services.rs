@@ -159,22 +159,142 @@ async fn join_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: 
 
 #[post("/groups/{id}/leave")]
 async fn leave_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: web::Json<UserData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            if !groups_list[i].is_open {break;}
+            if groups_list[i].admins_list.len() == 1 && groups_list[i].admins_list[i] == user_data.id {break; }
+ 
+            for j in 1..groups_list[i].admins_list.len() {
+ 
+                if groups_list[i].admins_list[j] == user_data.id {
+                    groups_list[i].admins_list.remove(j);
+                }
+ 
+            }
+ 
+            for j in 0..groups_list[i].members_list.len() {
+ 
+                if groups_list[i].members_list[j] == user_data.id {
+                    groups_list[i].members_list.remove(j);
+                }
+ 
+            }
+ 
+            break;
+ 
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups/{id}/admin")]
 async fn add_group_admin(data: web::Data<AppState>, path: web::Path<i32>, admin_operation_data: web::Json<AdminOperationData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            let mut initiator_is_admin = false;
+            let mut candidate_in_group = false;
+ 
+            for j in 1..groups_list[i].admins_list.len() {
+ 
+                if groups_list[i].admins_list[j] == admin_operation_data.initiator_id {
+                    initiator_is_admin = true;
+                    break;
+                }
+ 
+            }
+ 
+            for j in 0..groups_list[i].members_list.len() {
+ 
+                if groups_list[i].members_list[j] == admin_operation_data.candidate_id {
+                    candidate_in_group = true;
+                    break;
+                }
+ 
+            }
+ 
+            if initiator_is_admin && candidate_in_group {
+                groups_list[i].admins_list.push(admin_operation_data.candidate_id);
+            }
+ 
+            break;
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list[group_id as usize].admins_list.to_vec())
 }
 
 #[post("/groups/{id}/unadmin")]
 async fn group_unadmin(data: web::Data<AppState>, path: web::Path<i32>, admin_operation_data: web::Json<AdminOperationData>) -> impl Responder{
-   
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut group_index = 0;
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            group_index = i;
+ 
+            if admin_operation_data.candidate_id == admin_operation_data.initiator_id && groups_list[i].admins_list.len() == 1 { break; }
+ 
+            for j in 1..groups_list[i].admins_list.len() {
+ 
+                if groups_list[i].admins_list[j] == admin_operation_data.initiator_id {
+ 
+                    for k in 0..groups_list[i].admins_list.len() {
+                        if groups_list[i].admins_list[k] == admin_operation_data.candidate_id {
+                            groups_list[i].admins_list.remove(k);
+                            break;
+                        }
+                    }
+                    break;
+                }
+ 
+            }
+ 
+            break;
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list[group_index].admins_list.to_vec())
 }
 
 #[get("/groups/{id}/members")]
 async fn get_group_members(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder{
-
+ 
+    let groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner() ;
+ 
+    let mut value:Vec<i32> = vec![];
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            value = groups_list[i].members_list.to_vec();
+ 
+            break;
+ 
+        }
+    }
+ 
+    HttpResponse::Ok().json(value)
+ 
 }
 
 #[get("/groups/{id}/admins")]
