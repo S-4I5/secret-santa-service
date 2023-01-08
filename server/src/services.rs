@@ -299,21 +299,151 @@ async fn get_group_members(data: web::Data<AppState>, path: web::Path<i32>) -> i
 
 #[get("/groups/{id}/admins")]
 async fn get_group_admins(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
+let groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut value:Vec<i32> = vec![];
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id {
+ 
+            value = groups_list[i].admins_list.to_vec();
+ 
+            break;
+        }
+ 
+    }
+ 
+    HttpResponse::Ok().json(value)
 
 }
 
 #[post("/groups/{id}/secret-santa/start")]
 async fn start_secret_santa(data: web::Data<AppState>, path: web::Path<i32>, initiator: web::Json<UserData>) -> impl Responder {
+	 let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut group_index: usize = 0;
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id {
+            group_index = i;
+            break;
+        }
+	     
+    }
+ 
+    let mut is_initiator_admin = false;
+ 
+    for i in 0..groups_list[group_index].admins_list.len() {
+ 
+        if groups_list[group_index].admins_list[i] == initiator.id {
+            is_initiator_admin = true;
+            break;
+        }
+ 
+    }
+ 
+    if is_initiator_admin && groups_list[group_index].is_open {
+ 
+        let mut new_secret_santa_list = groups_list[group_index].members_list.clone();
+        let number_of_members = groups_list[group_index].members_list.len();
+ 
+        for i in 0..number_of_members - 1 {
+            let mut rnd_pos = rand::thread_rng().gen_range(0..number_of_members - i - 1);
+ 
+            println!("1");
+ 
+            while new_secret_santa_list[rnd_pos] == groups_list[group_index].members_list[i]  {
+ 
+                println!("2 {:?} {:?}", i, number_of_members );
+ 
+                rnd_pos = rand::thread_rng().gen_range(0..number_of_members - i - 1);
+ 
+                if i == number_of_members - 2{
+                    break;
+                }
+            }
+ 
+            groups_list[group_index].secret_santa_list.push(new_secret_santa_list[rnd_pos].clone());
+            new_secret_santa_list.remove(rnd_pos as usize);
+        }
+ 
+        if new_secret_santa_list[0] == groups_list[group_index].members_list[number_of_members - 1] {
+ 
+            for i in 1..number_of_members {
+ 
+                println!("3");
+ 
+                if groups_list[group_index].secret_santa_list[number_of_members - i - 1] != groups_list[group_index].members_list[number_of_members - 1] {
+                    let temp = groups_list[group_index].secret_santa_list[number_of_members - i - 1].clone();
+                    groups_list[group_index].secret_santa_list.push(temp);
+                    groups_list[group_index].secret_santa_list[number_of_members - i - 1] = new_secret_santa_list[0].clone();
+ 
+                    break;
+                }
+            }
+        } else {
+            groups_list[group_index].secret_santa_list.push(new_secret_santa_list[0].clone());
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list[group_index].secret_santa_list.to_vec())
 	
 }
 
 #[get("/groups/{id}/secret-santa")]
 async fn get_secret_santas_list(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
+	 let groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut group_index: usize = 0;
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id {
+            group_index = i;
+            break;
+        }
+ 
+    }
+ 
+    HttpResponse::Ok().json(groups_list[group_index].secret_santa_list.to_vec())
 
 }
 
 #[post("/groups/{id}/secret-santa")]
 async fn get_secret_santa(data: web::Data<AppState>, user_data: web::Json<UserData>, path: web::Path<i32>, ) -> impl Responder {
+	 let groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut group_index: usize = 0;
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id {
+            group_index = i;
+            break;
+        }
+ 
+    }
+ 
+    let mut santa_id = -1;
+ 
+    if groups_list[group_index].members_list.len() > 0 {
+ 
+        for i in 0..groups_list[group_index].members_list.len() {
+            if groups_list[group_index].members_list[i] == user_data.id {
+                santa_id = groups_list[group_index].secret_santa_list[i].clone();
+                break;
+            }
+        }
+ 
+    }
+ 
+    HttpResponse::Ok().json(santa_id)
 
 }
 
@@ -336,3 +466,4 @@ pub fn users_config(cfg: &mut web::ServiceConfig){
         .service(get_secret_santas_list)
         .service(get_secret_santa);
 }
+
