@@ -101,7 +101,25 @@ async fn delete_group(data: web::Data<AppState>, path: web::Path<i32>, user_data
 
 #[post("/groups")]
 async fn create_group(data: web::Data<AppState>, new_group_data: web::Json<NewGroupData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let mut max_id:usize = 0;
+    for i in 0..groups_list.len() {
+        if groups_list[i].id > max_id as i32{
+            max_id = groups_list[i].id as usize;
+        }
+    }
+ 
+    groups_list.push(Group{
+        id: (max_id + 1) as i32,
+        name: new_group_data.name.clone(),
+        admins_list: vec![new_group_data.creator_id.clone()],
+        members_list: vec![new_group_data.creator_id.clone()],
+        secret_santa_list: vec![],
+        is_open: true
+    });
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups/{id}/join")]
