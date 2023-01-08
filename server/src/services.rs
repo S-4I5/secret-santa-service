@@ -124,7 +124,37 @@ async fn create_group(data: web::Data<AppState>, new_group_data: web::Json<NewGr
 
 #[post("/groups/{id}/join")]
 async fn join_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: web::Json<UserData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            if !groups_list[i].is_open {break;}
+ 
+            let mut user_not_in_group = true;
+ 
+            for j in 0..groups_list[i].members_list.len() {
+ 
+                if groups_list[i].members_list[j] == user_data.id {
+                    user_not_in_group = false;
+                    break;
+                }
+ 
+            }
+ 
+            if user_not_in_group {
+                groups_list[i].members_list.push(user_data.id);
+            }
+ 
+            break;
+        }
+ 
+    }
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups/{id}/leave")]
