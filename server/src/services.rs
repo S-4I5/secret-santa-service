@@ -159,7 +159,39 @@ async fn join_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: 
 
 #[post("/groups/{id}/leave")]
 async fn leave_group(data: web::Data<AppState>, path: web::Path<i32>, user_data: web::Json<UserData>) -> impl Responder{
-
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            if !groups_list[i].is_open {break;}
+            if groups_list[i].admins_list.len() == 1 && groups_list[i].admins_list[i] == user_data.id {break; }
+ 
+            for j in 1..groups_list[i].admins_list.len() {
+ 
+                if groups_list[i].admins_list[j] == user_data.id {
+                    groups_list[i].admins_list.remove(j);
+                }
+ 
+            }
+ 
+            for j in 0..groups_list[i].members_list.len() {
+ 
+                if groups_list[i].members_list[j] == user_data.id {
+                    groups_list[i].members_list.remove(j);
+                }
+ 
+            }
+ 
+            break;
+ 
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list.to_vec())
 }
 
 #[post("/groups/{id}/admin")]
