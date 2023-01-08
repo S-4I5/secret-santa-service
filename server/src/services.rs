@@ -299,6 +299,23 @@ async fn get_group_members(data: web::Data<AppState>, path: web::Path<i32>) -> i
 
 #[get("/groups/{id}/admins")]
 async fn get_group_admins(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
+let groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut value:Vec<i32> = vec![];
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id {
+ 
+            value = groups_list[i].admins_list.to_vec();
+ 
+            break;
+        }
+ 
+    }
+ 
+    HttpResponse::Ok().json(value)
 
 }
 
@@ -336,3 +353,4 @@ pub fn users_config(cfg: &mut web::ServiceConfig){
         .service(get_secret_santas_list)
         .service(get_secret_santa);
 }
+
