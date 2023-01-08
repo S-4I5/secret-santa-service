@@ -332,6 +332,65 @@ async fn start_secret_santa(data: web::Data<AppState>, path: web::Path<i32>, ini
             group_index = i;
             break;
         }
+	     
+    }
+ 
+    let mut is_initiator_admin = false;
+ 
+    for i in 0..groups_list[group_index].admins_list.len() {
+ 
+        if groups_list[group_index].admins_list[i] == initiator.id {
+            is_initiator_admin = true;
+            break;
+        }
+ 
+    }
+ 
+    if is_initiator_admin && groups_list[group_index].is_open {
+ 
+        let mut new_secret_santa_list = groups_list[group_index].members_list.clone();
+        let number_of_members = groups_list[group_index].members_list.len();
+ 
+        for i in 0..number_of_members - 1 {
+            let mut rnd_pos = rand::thread_rng().gen_range(0..number_of_members - i - 1);
+ 
+            println!("1");
+ 
+            while new_secret_santa_list[rnd_pos] == groups_list[group_index].members_list[i]  {
+ 
+                println!("2 {:?} {:?}", i, number_of_members );
+ 
+                rnd_pos = rand::thread_rng().gen_range(0..number_of_members - i - 1);
+ 
+                if i == number_of_members - 2{
+                    break;
+                }
+            }
+ 
+            groups_list[group_index].secret_santa_list.push(new_secret_santa_list[rnd_pos].clone());
+            new_secret_santa_list.remove(rnd_pos as usize);
+        }
+ 
+        if new_secret_santa_list[0] == groups_list[group_index].members_list[number_of_members - 1] {
+ 
+            for i in 1..number_of_members {
+ 
+                println!("3");
+ 
+                if groups_list[group_index].secret_santa_list[number_of_members - i - 1] != groups_list[group_index].members_list[number_of_members - 1] {
+                    let temp = groups_list[group_index].secret_santa_list[number_of_members - i - 1].clone();
+                    groups_list[group_index].secret_santa_list.push(temp);
+                    groups_list[group_index].secret_santa_list[number_of_members - i - 1] = new_secret_santa_list[0].clone();
+ 
+                    break;
+                }
+            }
+        } else {
+            groups_list[group_index].secret_santa_list.push(new_secret_santa_list[0].clone());
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list[group_index].secret_santa_list.to_vec())
 	
 }
 
