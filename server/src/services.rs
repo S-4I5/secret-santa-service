@@ -238,7 +238,40 @@ async fn add_group_admin(data: web::Data<AppState>, path: web::Path<i32>, admin_
 
 #[post("/groups/{id}/unadmin")]
 async fn group_unadmin(data: web::Data<AppState>, path: web::Path<i32>, admin_operation_data: web::Json<AdminOperationData>) -> impl Responder{
-   
+ 
+    let mut groups_list = data.groups_list.lock().unwrap();
+    let group_id = path.into_inner();
+ 
+    let mut group_index = 0;
+ 
+    for i in 0..groups_list.len() {
+ 
+        if groups_list[i].id == group_id{
+ 
+            group_index = i;
+ 
+            if admin_operation_data.candidate_id == admin_operation_data.initiator_id && groups_list[i].admins_list.len() == 1 { break; }
+ 
+            for j in 1..groups_list[i].admins_list.len() {
+ 
+                if groups_list[i].admins_list[j] == admin_operation_data.initiator_id {
+ 
+                    for k in 0..groups_list[i].admins_list.len() {
+                        if groups_list[i].admins_list[k] == admin_operation_data.candidate_id {
+                            groups_list[i].admins_list.remove(k);
+                            break;
+                        }
+                    }
+                    break;
+                }
+ 
+            }
+ 
+            break;
+        }
+    }
+ 
+    HttpResponse::Ok().json(groups_list[group_index].admins_list.to_vec())
 }
 
 #[get("/groups/{id}/members")]
