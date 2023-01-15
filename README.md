@@ -3,7 +3,7 @@ Web service to allocate secret santas
 
 ## Основные запросы :
 
-Создание пользователя : GET host/groups
+Создание пользователя : post host/users
 
 Создание группы : POST host/groups
 
